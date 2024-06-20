@@ -25,8 +25,8 @@ class CenterPivotConv4d(nn.Module):
         bsz, ch, ha, wa, hb, wb = ct.size()
         idxh = torch.arange(start=0, end=hb, step=self.stride[2:][0], device=ct.device)
         idxw = torch.arange(start=0, end=wb, step=self.stride[2:][1], device=ct.device)
-        self.len_h = len(idxh)
-        self.len_w = len(idxw)
+        self.len_h = idxh.shape[0]
+        self.len_w = idxw.shape[0]
         self.idx = (idxw.repeat(self.len_h, 1) + idxh.repeat(self.len_w, 1).t() * wb).view(-1)
         self.idx_initialized = True
         ct_pruned = ct.view(bsz, ch, ha, wa, -1).index_select(4, self.idx).view(bsz, ch, ha, wa, self.len_h, self.len_w)
@@ -37,8 +37,8 @@ class CenterPivotConv4d(nn.Module):
         bsz, ch, ha, wa, hb, wb = ct.size()
         idxh = torch.arange(start=0, end=ha, step=self.stride[:2][0], device=ct.device)
         idxw = torch.arange(start=0, end=wa, step=self.stride[:2][1], device=ct.device)
-        self.len_h = len(idxh)
-        self.len_w = len(idxw)
+        self.len_h = idxh.shape[0]
+        self.len_w = idxw.shape[0]
         self.idx = (idxw.repeat(self.len_h, 1) + idxh.repeat(self.len_w, 1).t() * wa).view(-1)
         self.idx_initialized_2 = True
         ct_pruned = ct.view(bsz, ch, -1, hb, wb).permute(0,1,3,4,2).index_select(4, self.idx).permute(0,1,4,2,3).view(bsz, ch, self.len_h, self.len_w, hb, wb)
@@ -71,4 +71,3 @@ class CenterPivotConv4d(nn.Module):
             out2 = out2.squeeze()
         y = out1 + out2
         return y
-

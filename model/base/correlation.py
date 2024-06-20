@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import math
 from torch.nn.functional import interpolate as resize
 from .geometry import Geometry
+import torch
 
 class Correlation:
     @classmethod
@@ -30,7 +31,7 @@ class Correlation:
                 trg_norm = trg_feat.norm(p=2, dim=1, keepdim=True)
 
                 corr = torch.bmm(src_feat, trg_feat)
-                
+
                 corr_norm = torch.bmm(src_norm, trg_norm) + eps
                 corr = corr / corr_norm
 
@@ -40,11 +41,12 @@ class Correlation:
         # Resize the spatial sizes of the 4D tensors to the same size
         for idx, correlation in enumerate(corr6d):
             corr6d[idx] = Geometry.interpolate4d(correlation, [ha, wa, hb, wb])
-            
+
         # Build 6-dimensional correlation tensor
         corr6d = torch.stack(corr6d).view(len(_src_feats)*len(_trg_feats), bsz, ha, wa, hb, wb).transpose(0,1)
 
         return corr6d.clamp(min=0)
+
 
     @classmethod
     def build_crossscale_correlation(cls, query_feats, key_feats, scales, conv2ds):
@@ -56,14 +58,16 @@ class Correlation:
         # Construct feature pairs with multiple scales
         _query_feats_scalewise = []
         _key_feats_scalewise = []
-        for scale, conv in zip(scales, conv2ds):
-            shq = round(hq * math.sqrt(scale))
-            swq = round(wq * math.sqrt(scale))
-            shk = round(hk * math.sqrt(scale))
-            swk = round(wk * math.sqrt(scale))
+        scale_tensors = [torch.tensor(scale) for scale in scales]
+        for scale, conv in zip(scale_tensors, conv2ds):
+            scale_tensor = torch.tensor(scale)  # Convert scale to tensor if it's not already
+            shq = torch.round(hq * torch.sqrt(scale_tensor)).int()
+            swq = torch.round(wq * torch.sqrt(scale_tensor)).int()
+            shk = torch.round(hk * torch.sqrt(scale_tensor)).int()
+            swk = torch.round(wk * torch.sqrt(scale_tensor)).int()
 
-            _query_feats = conv(resize(query_feats, (shq, swq), mode='bilinear', align_corners=True))
-            _key_feats = conv(resize(key_feats, (shk, swk), mode='bilinear', align_corners=True))
+            _query_feats = conv(torch.nn.functional.interpolate(query_feats, size=(shq, swq), mode='bilinear', align_corners=True))
+            _key_feats = conv(torch.nn.functional.interpolate(key_feats, size=(shk, swk), mode='bilinear', align_corners=True))
 
             _query_feats_scalewise.append(_query_feats)
             _key_feats_scalewise.append(_key_feats)
