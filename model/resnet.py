@@ -275,6 +275,9 @@ class ResNet(nn.Module):
 		return x7
 
 	def forward(self, x_, scale=3, gemp=True, rgem=True, sgem=True):
+		gemp = False
+		rgem = False
+		sgem = False
 		assert scale in [1, 3, 5], "scale must be in [1, 3, 5]"
 
 		feature_list = []
@@ -287,8 +290,13 @@ class ResNet(nn.Module):
 		else:
 			raise
 		for _, scl in zip(range(scale), scale_list):
-			x = torchvision.transforms.functional.resize(x_, [int(x_.shape[-2] * scl), int(x_.shape[-1] * scl)])
-			x = self._forward_singlescale(x, gemp, rgem)
+			if scl != 1:
+				t1 = int(x_.shape[-2] * scl)
+				t2 = int(x_.shape[-1] * scl)
+				x = torchvision.transforms.functional.resize(x_, [t1, t2])
+				x = self._forward_singlescale(x, gemp, rgem)
+			else:
+				x = self._forward_singlescale(x_, gemp, rgem)
 			feature_list.append(x)
 		if sgem:
 			x_out = self.sgem(feature_list)
