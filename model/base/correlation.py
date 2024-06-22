@@ -66,8 +66,9 @@ class Correlation:
             shk = torch.round(hk * torch.sqrt(scale_tensor)).int()
             swk = torch.round(wk * torch.sqrt(scale_tensor)).int()
 
-            _query_feats = conv(torch.nn.functional.interpolate(query_feats, size=(shq, swq), mode='bilinear', align_corners=True))
-            _key_feats = conv(torch.nn.functional.interpolate(key_feats, size=(shk, swk), mode='bilinear', align_corners=True))
+            print("Interpolate correlation!")
+            _query_feats = conv(resize(query_feats, size=(shq, swq), mode='bilinear', align_corners=True))
+            _key_feats = conv(resize(key_feats, size=(shk, swk), mode='bilinear', align_corners=True))
 
             _query_feats_scalewise.append(_query_feats)
             _key_feats_scalewise.append(_key_feats)
