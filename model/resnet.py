@@ -275,9 +275,9 @@ class ResNet(nn.Module):
 		return x7
 
 	def forward(self, x_, scale=3, gemp=True, rgem=True, sgem=True):
-		gemp = False
-		rgem = False
-		sgem = False
+		# gemp = False
+		# rgem = False
+		# sgem = False
 		assert scale in [1, 3, 5], "scale must be in [1, 3, 5]"
 
 		feature_list = []
