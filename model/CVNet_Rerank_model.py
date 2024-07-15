@@ -6,7 +6,6 @@ from functools import reduce
 from operator import add
 
 import torch
-import torch.nn as nn
 
 from ..model.resnet import ResNet
 
@@ -36,9 +35,6 @@ class CVNet_Rerank(nn.Module):
 		if RESNET_DEPTH == 50:
 			nbottlenecks = [3, 4, 6, 3]
 			self.feat_ids = [13]
-		elif RESNET_DEPTH == 101:
-			nbottlenecks = [3, 4, 23, 3]
-			self.feat_ids = [30]
 		else:
 			raise Exception('Unavailable RESNET_DEPTH %s' % RESNET_DEPTH)
 
@@ -52,13 +48,6 @@ class CVNet_Rerank(nn.Module):
 			[self.num_scales * self.num_scales, self.num_scales * self.num_scales, self.num_scales * self.num_scales])
 
 	def forward(self, query_img, key_img):
-		# scale_list = cfg.TEST.SCALE_LIST
-		# gemp = cfg.SupG.gemp
-		# rgem = cfg.SupG.rgem
-		# sgem = cfg.SupG.sgem
-		# feat = self.extract_global_descriptor(query_img, gemp, rgem, sgem, scale_list)
-		# print(feat.shape)
-		# return feat
 		with torch.no_grad():
 			query_feats = self.extract_feats(query_img, self.encoder_q, self.feat_ids, self.bottleneck_ids, self.lids)
 			key_feats = self.extract_feats(key_img, self.encoder_q, self.feat_ids, self.bottleneck_ids, self.lids)
@@ -66,7 +55,6 @@ class CVNet_Rerank(nn.Module):
 			corr_qk = Correlation.build_crossscale_correlation(query_feats[0], key_feats[0], self.scales, self.conv2ds)
 			logits_qk = self.cv_learner(corr_qk)
 			score = self.softmax(logits_qk)[:, 1]
-			print(score)
 		return score
 
 	def extract_global_descriptor(self, im_q, gemp, rgem, sgem, scale_list):

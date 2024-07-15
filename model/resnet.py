@@ -9,7 +9,6 @@
 
 import torch
 import torch.nn as nn
-import torchvision
 import torch.nn.functional as F
 from ..modules.coarse_retrieval.rgem import rgem
 from ..modules.coarse_retrieval.gemp import gemp
@@ -47,9 +46,9 @@ class GeneralizedMeanPooling(nn.Module):
 	The number of output features is equal to the number of input planes.
 	Args:
 		output_size: the target output size of the image of the form H x W.
-					 Can be a tuple (H, W) or a single H for a square image H x H
-					 H and W can be either a ``int``, or ``None`` which means the size will
-					 be the same as that of the input.
+					Can be a tuple (H, W) or a single H for a square image H x H
+					H and W can be either a ``int``, or ``None`` which means the size will
+					be the same as that of the input.
 	"""
 
 	def __init__(self, norm, output_size=1, eps=1e-6):
@@ -291,17 +290,15 @@ class ResNet(nn.Module):
 			raise
 		for _, scl in zip(range(scale), scale_list):
 			if scl != 1:
-				t1 = int(x_.shape[-2] * scl)
-				t2 = int(x_.shape[-1] * scl)
-				x = torchvision.transforms.functional.resize(x_, [t1, t2])
-				x = self._forward_singlescale(x, gemp, rgem)
-			else:
-				x = self._forward_singlescale(x_, gemp, rgem)
+				t1 = torch.round(x_.shape[-2] * scl).to(torch.int64).numpy()
+				t2 = torch.round(x_.shape[-1] * scl).to(torch.int64).numpy()
+				# t1, t2 = int(t1), int(t2)
+				F.interpolate(x_, size=(t1, t2), mode='bilinear', align_corners=True)
+			x = self._forward_singlescale(x_, gemp, rgem)
 			feature_list.append(x)
 		if sgem:
 			x_out = self.sgem(feature_list)
 		else:
 			x_out = torch.stack(feature_list, 0)
 			x_out = torch.mean(x_out, 0)
-
 		return x_out
